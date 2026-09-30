@@ -191,9 +191,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 var titles = item.GetProperty("title");
                 SearchResults.Add(new CatalogManga(
                     titles.GetString() ?? "Sans titre",
-                    item.TryGetProperty("authors", out var authors) ? authors.EnumerateArray().FirstOrDefault().GetProperty("name").GetString() : null,
+                    ReadAuthor(item),
                     item.TryGetProperty("volumes", out var volumes) && volumes.ValueKind == JsonValueKind.Number ? volumes.GetInt32() : null,
-                    item.TryGetProperty("status", out var publication) ? publication.GetString() ?? "unknown" : "unknown",
+                    ReadStatus(item),
                     item.TryGetProperty("images", out var images) && images.GetProperty("jpg").TryGetProperty("image_url", out var url) ? url.GetString() : null));
             }
             StatusMessage = SearchResults.Count == 0 ? "Aucun résultat pour cette recherche." : $"{SearchResults.Count} résultat(s) trouvé(s).";
@@ -233,6 +233,26 @@ public sealed class MainViewModel : INotifyPropertyChanged
     }
 
     private static string Csv(string? value) => string.IsNullOrEmpty(value) ? string.Empty : $"\"{value.Replace("\"", "\"\"").Replace("\r", " ").Replace("\n", " ")}\"";
+    private static string? ReadAuthor(JsonElement item)
+    {
+        if (!item.TryGetProperty("authors", out var authors) || authors.ValueKind != JsonValueKind.Array) return null;
+        foreach (var author in authors.EnumerateArray())
+            if (author.TryGetProperty("name", out var name)) return name.GetString();
+        return null;
+    }
+
+    private static string ReadStatus(JsonElement item)
+    {
+        if (!item.TryGetProperty("status", out var status)) return nameof(PublicationStatus.Unknown);
+        var value = status.GetString()?.ToLowerInvariant();
+        return value switch
+        {
+            "publishing" => nameof(PublicationStatus.InProgress),
+            "finished" => nameof(PublicationStatus.Completed),
+            _ => nameof(PublicationStatus.Unknown)
+        };
+    }
+
     private static string? NullIfEmpty(string value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     private bool SetField<T>(ref T field, T value, [System.Runtime.CompilerServices.CallerMemberName] string? name = null)
     {
