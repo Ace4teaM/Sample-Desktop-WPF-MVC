@@ -5,8 +5,139 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:MangaCollection.App"
         mc:Ignorable="d"
-        Title="Manga Collection" Height="450" Width="800">
-    <Grid>
+        Title="Ma collection de mangas" Height="720" Width="1120"
+        MinHeight="560" MinWidth="860">
+    <Window.Resources>
+        <local:InverseBooleanConverter x:Key="InverseBooleanConverter" />
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <local:ZeroToVisibilityConverter x:Key="ZeroToVisibilityConverter" />
+    </Window.Resources>
+    <DockPanel Margin="18">
+        <Border DockPanel.Dock="Top" Padding="0,0,0,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="Ma collection" FontSize="28" FontWeight="SemiBold" VerticalAlignment="Center" />
+                <Button Grid.Column="1" Content="Ajouter" Command="{Binding AddCommand}" Padding="14,7" Margin="8,0,0,0" />
+                <Button Grid.Column="2" Content="Modifier" Command="{Binding EditCommand}" Padding="14,7" Margin="8,0,0,0" />
+                <Button Grid.Column="3" Content="Supprimer" Command="{Binding DeleteCommand}" Padding="14,7" Margin="8,0,0,0" />
+            </Grid>
+        </Border>
 
-    </Grid>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*" />
+                <ColumnDefinition Width="1.1*" />
+            </Grid.ColumnDefinitions>
+
+            <DockPanel Grid.Column="0" Margin="0,0,16,0">
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,10">
+                    <TextBlock Text="Présentation :" VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <RadioButton Content="Liste" IsChecked="{Binding IsGridView, Mode=TwoWay, Converter={StaticResource InverseBooleanConverter}}" GroupName="view" Margin="0,0,12,0" />
+                    <RadioButton Content="Jaquettes" IsChecked="{Binding IsGridView}" GroupName="view" />
+                    <Button Content="Exporter CSV" Command="{Binding ExportCommand}" Padding="10,4" Margin="20,0,0,0" />
+                </StackPanel>
+
+                <Grid>
+                    <ListView ItemsSource="{Binding Mangas}" SelectedItem="{Binding SelectedManga}" Visibility="{Binding IsGridView, Converter={StaticResource InverseBooleanConverter}}">
+                        <ListView.View>
+                            <GridView>
+                                <GridViewColumn Header="Titre" DisplayMemberBinding="{Binding Title}" Width="220" />
+                                <GridViewColumn Header="Auteur" DisplayMemberBinding="{Binding Author}" Width="150" />
+                                <GridViewColumn Header="Possédés" DisplayMemberBinding="{Binding OwnedVolumeCount}" Width="75" />
+                                <GridViewColumn Header="Total" DisplayMemberBinding="{Binding TotalVolumeCount}" Width="65" />
+                                <GridViewColumn Header="Statut" DisplayMemberBinding="{Binding PublicationStatus}" Width="100" />
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
+                    <ListBox ItemsSource="{Binding Mangas}" SelectedItem="{Binding SelectedManga}" Visibility="{Binding IsGridView, Converter={StaticResource BooleanToVisibilityConverter}}" BorderThickness="0">
+                        <ListBox.ItemsPanel>
+                            <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                        </ListBox.ItemsPanel>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border Width="145" Height="190" Margin="5" BorderBrush="#D0D0D0" BorderThickness="1" Padding="7">
+                                    <StackPanel>
+                                        <Image Source="{Binding CoverUrl}" Height="125" Stretch="Uniform" />
+                                        <TextBlock Text="{Binding Title}" TextWrapping="Wrap" FontWeight="SemiBold" Margin="0,5,0,0" />
+                                        <TextBlock Text="{Binding OwnedVolumeCount, StringFormat={}{0} volume(s) possédé(s)}" FontSize="11" />
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                    <TextBlock Text="{Binding StatusMessage}" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="360"
+                               Visibility="{Binding Mangas.Count, Converter={StaticResource ZeroToVisibilityConverter}}" />
+                </Grid>
+            </DockPanel>
+
+            <Grid Grid.Column="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <GroupBox Header="Rechercher dans le catalogue" Padding="10">
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Content="Rechercher" Command="{Binding SearchCommand}" Padding="10,4" Margin="8,0,0,0" />
+                        <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" />
+                    </DockPanel>
+                </GroupBox>
+                <ListBox Grid.Row="1" ItemsSource="{Binding SearchResults}" SelectedItem="{Binding SelectedSearchResult}" SelectionChanged="SearchResults_SelectionChanged" MaxHeight="180" Margin="0,8,0,12">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Margin="4">
+                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding Author}" FontSize="11" />
+                                <TextBlock Text="{Binding Status}" FontSize="11" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <GroupBox Grid.Row="2" Header="Informations du manga" Padding="10">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel IsEnabled="{Binding IsEditing}">
+                            <TextBlock Text="Titre *" />
+                            <TextBox Text="{Binding DraftTitle, UpdateSourceTrigger=PropertyChanged}" Margin="0,3,0,8" />
+                            <TextBlock Text="Auteur" />
+                            <TextBox Text="{Binding DraftAuthor, UpdateSourceTrigger=PropertyChanged}" Margin="0,3,0,8" />
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+                                <StackPanel Margin="0,0,5,8">
+                                    <TextBlock Text="Volumes possédés *" />
+                                    <TextBox Text="{Binding DraftOwnedVolumes, UpdateSourceTrigger=PropertyChanged}" Margin="0,3,0,0" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Margin="5,0,0,8">
+                                    <TextBlock Text="Volumes total" />
+                                    <TextBox Text="{Binding DraftTotalVolumes, UpdateSourceTrigger=PropertyChanged}" Margin="0,3,0,0" />
+                                </StackPanel>
+                            </Grid>
+                            <TextBlock Text="Statut de publication" />
+                            <ComboBox SelectedValue="{Binding DraftStatus}" SelectedValuePath="Content" Margin="0,3,0,8">
+                                <ComboBoxItem Content="Unknown" />
+                                <ComboBoxItem Content="InProgress" />
+                                <ComboBoxItem Content="Completed" />
+                            </ComboBox>
+                            <TextBlock Text="Genres (séparés par des virgules)" />
+                            <TextBox Text="{Binding DraftGenres, UpdateSourceTrigger=PropertyChanged}" Margin="0,3,0,8" />
+                            <TextBlock Text="URL de la jaquette" />
+                            <TextBox Text="{Binding DraftCoverUrl, UpdateSourceTrigger=PropertyChanged}" Margin="0,3,0,8" />
+                            <TextBlock Text="Note personnelle" />
+                            <TextBox Text="{Binding DraftNote, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" Height="65" TextWrapping="Wrap" Margin="0,3,0,8" />
+                            <TextBlock Text="{Binding ValidationMessage}" Foreground="Firebrick" TextWrapping="Wrap" Margin="0,0,0,8" />
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Button Content="Annuler" Command="{Binding CancelCommand}" Padding="12,5" Margin="0,0,8,0" />
+                                <Button Content="Enregistrer" Command="{Binding SaveCommand}" Padding="12,5" />
+                            </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+                </GroupBox>
+            </Grid>
+        </Grid>
+    </DockPanel>
 </Window>
